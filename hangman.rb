@@ -75,6 +75,12 @@ class Hangman
     end
   end
 
+  def load_save
+    save_file = File.open(SAVE_FILE, 'r')
+    from_msgpack(save_file.gets.chomp)
+    save_file.close
+  end
+
   def turn
     display_guessed
     guess = player_guess
@@ -100,12 +106,12 @@ class Hangman
   def play
     puts @word
     gameover = false
-    #from_msgpack(SAVE_FILE) if check_for_save
+    load_save if check_for_save
 
     display_board
-    #until gameover
-      #gameover = turn
-    #end
+    until gameover
+      gameover = turn
+    end
 
     if @player_won
       puts 'Congrats you won'
@@ -124,8 +130,8 @@ class Hangman
       })
   end
 
-  def from_msgpack(filename)
-    data = MessagePack.load filename
+  def from_msgpack(packed_msg)
+    data = MessagePack.load packed_msg
     @word = data['word']
     @guesses = data['guesses']
     @guessed_letters = data['guessed_letters']
