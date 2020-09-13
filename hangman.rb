@@ -1,6 +1,10 @@
 # frozen_string_literal: false
 require 'pry'
 
+require 'msgpack'
+
+SAVE_FILE = 'save.dat'.freeze
+
 # class that implements a hangman game
 class Hangman
   def initialize(file)
@@ -54,24 +58,82 @@ class Hangman
       @guessed_letters << guess
       @guesses += 1
     end
-    @word == @board.join("")
+    @word == @board.join('')
+  end
+
+  def check_to_save
+    puts 'Would you like to save the game?(y/n): '
+    choice = gets.chomp.downcase
+    choice == 'y'
+  end
+
+  def check_for_save
+    if File.file?(SAVE_FILE)
+      puts 'Would you like to load data from a saved game?(y/n)'
+      choice = gets.chomp.downcase
+      choice == 'y'
+    end
+  end
+
+  def turn
+    display_guessed
+    guess = player_guess
+    @player_won = check_guess(guess)
+    display_board
+    if check_to_save
+      save
+      true
+    elsif @guesses > 6 || @player_won
+      true
+    else
+      false
+    end
+  end
+
+  def save
+    save_file = File.open(SAVE_FILE, 'w')
+    save_file.puts to_msgpack
+    save_file.close
+    puts 'Your game has been saved'
   end
 
   def play
     puts @word
-    until @player_won || @guesses > 6
-      # display number of letters in word
-      display_board
-      # display guessed chars
-      display_guessed
-      # ask player to guess a word or a letter
-      guess = player_guess
-      # check if correct
-      @player_won = check_guess(guess)
+    gameover = false
+    #from_msgpack(SAVE_FILE) if check_for_save
+
+    display_board
+    #until gameover
+      #gameover = turn
+    #end
+
+    if @player_won
+      puts 'Congrats you won'
+    elsif @guesses > 6
+      puts "You lose correct word was: #{@word}"
     end
-    @player_won ? puts('Congrats you won') : puts("You lose correct word was: #{@word}")
+  end
+
+  def to_msgpack
+    MessagePack.dump({
+      word: @word,
+      guesses: @guesses,
+      guessed_letters: @guessed_letters,
+      board: @board,
+      player_won: @player_won
+      })
+  end
+
+  def from_msgpack(filename)
+    data = MessagePack.load filename
+    @word = data['word']
+    @guesses = data['guesses']
+    @guessed_letters = data['guessed_letters']
+    @board = data['board']
+    @player_won = data['player_won']
   end
 end
 
 new_game = Hangman.new('5desk.txt')
+
 new_game.play
